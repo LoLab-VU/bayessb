@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>BioMC by sorgerlab</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/sorgerlab/biomc">View On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/sorgerlab/biomc/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/sorgerlab/biomc/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>BioMC</h1>
+          <p>Bayesian model inference and parameter estimation for biological
+          models</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/sorgerlab">sorgerlab</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></span>
+        </div>
+
+        <h1>More about the method</h1>
+
+        <p>BioMC uses a multi-start Markov Chain Monte Carlo (MCMC) search
+        procedure to search the landscape of the objective function.  To improve
+        the efficiency of the search and improve chain convergence it is often
+        necessary to perform adaptive MCMC walks. A drawback of some adaptive
+        MCMC approaches is that they alter the proposal distribution (which
+        determines how the next step is taken) over the course of a walk and
+        this has the potential to violate stationarity a necessary condition for
+        correct sampling of posterior distributions.  This issue should be
+        evaluated when BioMC is used.
+
+        <p>BioMC returns parameter estimates as array of size
+        <math>
+          <mi>C</mi>
+          <mo>&times;</mo>
+          <mi>M</mi>
+          <mo>&times;</mo>
+          <mo>(</mo>
+          <mi>N</mi>
+          <mo>+</mo>
+          <mn>1</mn>
+          <mo>)</mo>
+        </math>
+        where <math><mi>C</mi></math> is the number of MCMC chains,
+        <math><mi>M</mi></math> the number of steps, and <math><mi>N</mi></math>
+        the number of parameters (<math><mi>N</mi><mo>+</mo><mn>1</mn></math>
+        appears because we record a posterior value for each N-dimensional
+        vector). Parameter distributions in this array co-vary in a strong and
+        non-linear way and it is essential to use this covariation when
+        analyzing parameters or making model-based predictions (reporting
+        parameters as a table of values and associated variances is invalid).
+        This is not a peculiarity of our approach but a fundamental property of
+        mass-action models calibrated to time-course data.
+
+        <p><a href="index.html">Return to the home page</a>
+
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+
+  </body>
+</html>

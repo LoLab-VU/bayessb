@@ -6,7 +6,6 @@
     <title>BioMC by sorgerlab</title>
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
     <script src="javascripts/respond.js"></script>
     <!--[if lt IE 9]>
       <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -39,35 +38,56 @@
           <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></span>
         </div>
 
-        <p>BioMC is a Python software library for performing Bayesian model
-        inference and parameter estimation on biological models, using a Markov
-        Chain Monte Carlo (MCMC) technique described in the paper <em>Eydgahi et
+        <p>BioMC is an algorithm and Python software package for estimating
+        parameter distributions in ODE-based models of cellular biochemistry and
+        for discriminating between models having different numbers of unknown
+        parameters. The algorithm is described in detail in <em>Eydgahi et
         al. Bayesian parameter estimation and model discrimination for complex
-        biochemical networks. Mol Syst Biol (in review).</em>
+        biochemical networks. Mol Syst Biol (in review)</em>.
+
+        <p>The procedure returns joint probability distributions for model
+        parameters and makes it possible to compute uncertainty for model-based
+        predictions based on error in the data and the non-identifiability of
+        model parameters. Bayesian methods also make it possible to compute the
+        odds ratio for competing models having different numbers of parameters.
+        Bayesian approaches to model calibration and discrimination represent a
+        generally useful and rigorous approach to analyzing biochemical pathways
+        in the face of parametric and topological uncertainty.
+
+        <p><a href="more.html">Read more about the method</a>
 
         <h1>Documentation</h1>
 
         <p>The code has extensive inline documentation.  Once you have installed
-        the package, run <code>pydoc biomc</code> and <code>pydoc biomc.plot</code> to
-        view it.
+        the package, run <code>pydoc biomc</code> and <code>pydoc
+        biomc.plot</code> to view it.
 
         <p>For a fairly simple example of BioMC usage, see the script
         <code>examples/earm/fit_1_3_standalone.py</code>.
 
         <h1>Download</h1>
 
-        <p>You can clone the source code with <a
+        <p>You can obtain the source code with <a
         href="http://git-scm.com">Git</a> by running:
 
         <p><code>git clone git://github.com/sorgerlab/biomc</code>
 
         <p>Alternatively, you can download the code via the TAR/ZIP links above.
 
+        <p>We also provide the <a
+        href="https://github.com/sorgerlab/eydgahi_et_al_bayesian_estimation">original
+        MATLAB version of the code</a> via GitHub.</p>
+
         <h1>Authors</h1>
 
-        <p>Hoda Eydgahi (hoda@mit.edu)<br>
-        Jeremy L. Muhlich (<a
-        href="mailto:jmuhlich@bitflood.org">jmuhlich@bitflood.org</a>)<br>
+        <p>
+          Hoda Eydgahi (hoda@mit.edu)<br>
+
+          William Chen (wwchen@post.harvard.edu)<br>
+
+          Jeremy L. Muhlich (<a
+          href="mailto:jmuhlich@bitflood.org">jmuhlich@bitflood.org</a>)<br>
+
 
       </section>
 
