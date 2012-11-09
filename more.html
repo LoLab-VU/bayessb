@@ -24,7 +24,7 @@
           <li class="downloads"><a href="https://github.com/sorgerlab/bayessb/tarball/master">TAR</a></li>
           <li class="title">DOWNLOADS</li>
         </nav>
-      </div><!-- end header -->
+      </div>
 
     <div class="wrapper">
 
@@ -40,14 +40,23 @@
 
         <h1>More about the method</h1>
 
+        <p>The procedure returns joint probability distributions for model
+        parameters and makes it possible to compute uncertainty for model-based
+        predictions based on error in the data and the non-identifiability of
+        model parameters. Bayesian methods also make it possible to compute the
+        odds ratio for competing models having different numbers of parameters.
+        Bayesian approaches to model calibration and discrimination represent a
+        generally useful and rigorous approach to analyzing biochemical pathways
+        in the face of parametric and topological uncertainty.
+
         <p>BayesSB uses a multi-start Markov Chain Monte Carlo (MCMC) search
         procedure to search the landscape of the objective function.  To improve
         the efficiency of the search and improve chain convergence it is often
         necessary to perform adaptive MCMC walks. A drawback of some adaptive
         MCMC approaches is that they alter the proposal distribution (which
         determines how the next step is taken) over the course of a walk and
-        this has the potential to violate stationarity a necessary condition for
-        correct sampling of posterior distributions.  This issue should be
+        this has the potential to violate stationarity, a necessary condition
+        for correct sampling of posterior distributions.  This issue should be
         evaluated when BayesSB is used.
 
         <p>BayesSB returns parameter estimates as array of size
