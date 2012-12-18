@@ -73,12 +73,34 @@
         <p>The <code>examples</code> directory in the source
         distribution contains some simple BayesSB usage examples:
         <ul>
-          <li><code>examples/earm/fit_1_3_standalone.py</code>: Fit a real-world
-          model of extrinsic apoptosis to experimental single-cell data on
-          Caspase-3 reporter activity.
-          <li><code>examples/robertson/figs_msb_paper.py</code>: Using a small
-          model of a classical biochemical system, recover "true" parameter
-          values from noisy synthetic data.
+          <li><code><a
+          href="https://github.com/sorgerlab/bayessb/blob/master/examples/earm/fit_1_3_standalone.py"
+          >examples/earm/fit_1_3_standalone.py</a></code>: Fit a real-world
+          model of extrinsic apoptosis (EARM 1.3) to experimental single-cell
+          data on Caspase-3 reporter activity.
+
+          <li><code><a
+          href="https://github.com/sorgerlab/bayessb/blob/master/examples/earm/thermodynamic_integration.py"
+          >examples/earm/thermodynamic_integration.py</a></code>: Using the EARM
+          1.3 model and data mentioned above, perform thermodynamic integration
+          to calculate the evidence, or
+          <math style="white-space: nowrap;">
+            <mi>P</mi>
+            <mrow>
+              <mo>(</mo>
+              <mi>Data</mi>
+              <mo>|</mo>
+              <mi>Model</mi>
+              <mo>)</mo>
+            </mrow>
+          </math>
+          .
+
+          <li><code><a
+          href="https://github.com/sorgerlab/bayessb/blob/master/examples/robertson/figs_msb_paper.py"
+          >examples/robertson/figs_msb_paper.py</a></code>: Using a small model
+          of a classical biochemical system, recover "true" parameter values
+          from noisy synthetic data.
         </ul>
 
         <h1>Download</h1>
