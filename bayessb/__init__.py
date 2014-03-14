@@ -59,8 +59,8 @@ class MCMC(object):
     start_iter : int
         Starting MCMC step number.
     ode_options : dict
-        Options for the ODE integrator, currently just 'rtol' for relative
-        tolerance and 'atol' for absolute tolerance.
+        Options for the ODE integrator, currently 'rtol' for relative
+        tolerance, 'atol' for absolute tolerance, 'intsteps' for nsteps, and 'with_jacobian' for using Jacobian.
     random : numpy.random.RandomState
         Random number generator. Seeded with `options.seed` for reproducible
         runs.
@@ -190,6 +190,10 @@ class MCMC(object):
             self.ode_options['rtol'] = self.options.rtol
         if self.options.atol is not None:
             self.ode_options['atol'] = self.options.atol
+	if self.options.intsteps is not None:
+	    self.ode_options['nsteps'] = self.options.intsteps
+	if self.options.with_jacobian is not None:
+	    self.ode_options['with_jacobian'] = self.options.with_jacobian
 
         # create solver so we can calculate the posterior
         self.init_solver()
@@ -239,6 +243,7 @@ class MCMC(object):
         if _use_pysb and isinstance(self.options.model, pysb.core.Model):
             self.solver = pysb.integrate.Solver(self.options.model,
                                                 self.options.tspan,
+						self.options.integrator,
                                                 **self.ode_options)
 
     def estimate(self):
@@ -637,6 +642,12 @@ class MCMCOpts(object):
         Relative tolerance for ODE solver.
     atol : float or list of float, optional
         Absolute tolerance for ODE solver.
+    integrator : string, optional
+	Integrator to be used by ODE solver.
+    intsteps : int, optional
+	Maximum number of internally-defined steps allowed during one call to the ODE solver.
+    with_jacobian : boolean, optional
+	Whether to have the ODE solver use the Jacobian.
     norm_step_size : float, optional
         MCMC step size. Defaults to a reasonable value.
     hessian_period : int, optional
@@ -688,6 +699,9 @@ class MCMCOpts(object):
         self.boundary_option    = False
         self.rtol               = None
         self.atol               = None
+	self.integrator		= None
+	self.intsteps		= None
+	self.with_jacobian	= None
         self.norm_step_size     = 0.75
         self.hessian_period     = 25000
         self.hessian_scale      = 0.085
