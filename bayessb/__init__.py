@@ -221,11 +221,11 @@ class MCMC(object):
         self.sig_value = 1.0
         self.hessian = None
 
-        self.delta_posteriors = np.empty(self.options.nsteps)
+        self.delta_posteriors = np.empty((self.options.nsteps, self.options.objectives))
         self.ts = np.empty(self.options.nsteps)
         self.priors = np.empty(self.options.nsteps)
-        self.likelihoods = np.empty(self.options.nsteps)
-        self.posteriors = np.empty(self.options.nsteps)
+        self.likelihoods = np.empty((self.options.nsteps, self.options.objectives))
+        self.posteriors = np.empty((self.options.nsteps, self.options.objectives))
         self.positions = np.empty((self.options.nsteps, self.num_estimate))
         self.alphas = np.empty(self.options.nsteps)
         self.sigmas = np.empty(self.options.nsteps)
@@ -277,15 +277,15 @@ class MCMC(object):
             if hasattr(delta_posterior, "__len__"):
                 dominant = 'y'
                 for i in range(len(delta_posterior)):
-                    if delta_posterior[i] is not <= 0:
+                    if delta_posterior[i] > 0:
                         dominant = 'n'
-                    if dominant = 'y':
+                    if dominant == 'y':
                         self.accept_move()
                     else:
                         delta_sum = sum(delta_posterior)
                         alpha = self.random.rand()
                         self.alphas[self.iter] = alpha;  # log the alpha value
-                        if math.e ** (-delta_posterior/self.T) > alpha:
+                        if math.e ** (-delta_sum/self.T) > alpha:
                             self.accept_move()
                         else:
                             self.reject_move()
@@ -321,9 +321,14 @@ class MCMC(object):
             # log some interesting variables
             self.positions[self.iter,:] = self.test_position
             self.priors[self.iter] = self.test_prior
-            self.likelihoods[self.iter] = self.test_likelihood
-            self.posteriors[self.iter] = self.test_posterior
-            self.delta_posteriors[self.iter] = delta_posterior
+	    if hasattr(self.test_likelihood, "__len__"):
+		self.likelihoods[self.iter] = np.array(self.test_likelihood)
+		self.posteriors[self.iter] = np.array(self.test_posterior)
+		self.delta_posteriors[self.iter] = np.array(delta_posterior)
+	    else:
+            	self.likelihoods[self.iter] = self.test_likelihood
+            	self.posteriors[self.iter] = self.test_posterior
+            	self.delta_posteriors[self.iter] = delta_posterior
             self.sigmas[self.iter] = self.sig_value
             self.ts[self.iter] = self.T
 
@@ -646,6 +651,8 @@ class MCMCOpts(object):
         User likelihood function.
     prior_fn : callable f(mcmc, position), optional
         User prior function. If omitted, a flat prior will be used.
+    objectives : int, optional
+	Number of objectives for which to optimize (returned by likelihood_fn).  Single objective by default.
     nsteps : int
         Number of MCMC iterations to perform.
     use_hessian : bool, optional
@@ -711,6 +718,7 @@ class MCMCOpts(object):
         self.step_fn            = None
         self.likelihood_fn      = None
         self.prior_fn           = None
+	self.objectives		= 1
         self.nsteps             = None
         self.use_hessian        = False
         self.start_random       = False
