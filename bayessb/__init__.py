@@ -273,15 +273,33 @@ class MCMC(object):
 
             # ------------------METROPOLIS-HASTINGS ALGORITHM-------------------
             delta_posterior = self.test_posterior - self.accept_posterior
-            if delta_posterior < 0:
-                self.accept_move()
+            #Handle testing multiobjective acceptance criteria
+            if hasattr(delta_posterior, "__len__"):
+                dominant = 'y'
+                for i in range(len(delta_posterior)):
+                    if delta_posterior[i] is not <= 0:
+                        dominant = 'n'
+                    if dominant = 'y':
+                        self.accept_move()
+                    else:
+                        delta_sum = sum(delta_posterior)
+                        alpha = self.random.rand()
+                        self.alphas[self.iter] = alpha;  # log the alpha value
+                        if math.e ** (-delta_posterior/self.T) > alpha:
+                            self.accept_move()
+                        else:
+                            self.reject_move()
+            #Handle single objective
             else:
-                alpha = self.random.rand()
-                self.alphas[self.iter] = alpha;  # log the alpha value
-                if math.e ** (-delta_posterior/self.T) > alpha:
+                if delta_posterior < 0:
                     self.accept_move()
                 else:
-                    self.reject_move()
+                    alpha = self.random.rand()
+                    self.alphas[self.iter] = alpha;  # log the alpha value
+                    if math.e ** (-delta_posterior/self.T) > alpha:
+                        self.accept_move()
+                    else:
+                        self.reject_move()
 
             # -------ADJUSTING SIGMA & TEMPERATURE (ANNEALING)--------
             # XXX why did I move this first bit outside the
