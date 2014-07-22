@@ -200,7 +200,7 @@ class MCMC(object):
 
         self.initial_posterior, self.initial_prior, self.initial_likelihood = \
             self.calculate_posterior(self.initial_position)
-
+        
         self.accept_prior = self.initial_prior
         self.accept_likelihood = self.initial_likelihood
         self.accept_posterior = self.initial_posterior
@@ -323,9 +323,9 @@ class MCMC(object):
             self.priors[self.iter] = self.test_prior
             
             if hasattr(self.test_likelihood, "__len__"):
-		        self.likelihoods[self.iter] = np.array(self.test_likelihood)
-		        self.posteriors[self.iter] = np.array(self.test_posterior)
-		        self.delta_posteriors[self.iter] = np.array(delta_posterior)
+                self.likelihoods[self.iter] = np.array(self.test_likelihood)
+                self.posteriors[self.iter] = np.array(self.test_posterior)
+                self.delta_posteriors[self.iter] = np.array(delta_posterior)
             else:
                 self.likelihoods[self.iter] = self.test_likelihood
                 self.posteriors[self.iter] = self.test_posterior
