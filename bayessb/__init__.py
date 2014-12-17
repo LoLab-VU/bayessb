@@ -211,7 +211,7 @@ class MCMC(object):
         self.T = self.options.T_init;
         self.sig_value = 1.0
         self.hessian = None
-        self.delta_posteriors = np.empty((self.options.nsteps, self.options.objectives))
+        self.delta_test_posteriors = np.empty((self.options.nsteps, self.options.objectives))
         self.ts = np.empty(self.options.nsteps)
         self.priors = np.empty(self.options.nsteps)
         self.likelihoods = np.empty((self.options.nsteps, self.options.objectives))
@@ -272,17 +272,17 @@ class MCMC(object):
                 self.calculate_posterior(self.test_position)
 
             # ------------------METROPOLIS-HASTINGS ALGORITHM-------------------
-            delta_posterior = self.test_posterior - self.accept_posterior
+            self.delta_posterior = self.test_posterior - self.accept_posterior
             #Handle testing multiobjective acceptance criteria
-            if hasattr(delta_posterior, "__len__"):
+            if hasattr(self.delta_posterior, "__len__"):
                 dominant = 'y'
-                for i in range(len(delta_posterior)):
-                    if delta_posterior[i] > 0:
+                for i in range(len(self.delta_posterior)):
+                    if self.delta_posterior[i] > 0:
                         dominant = 'n'
                 if dominant == 'y':
                     self.accept_move()
                 else:
-                    delta_sum = sum(delta_posterior)
+                    delta_sum = sum(self.delta_posterior)
                     alpha = self.random.rand()
                     self.alphas[self.iter] = alpha;  # log the alpha value
                     if math.e ** (-delta_sum/self.T) > alpha:
@@ -291,12 +291,12 @@ class MCMC(object):
                         self.reject_move()
             #Handle single objective
             else:
-                if delta_posterior < 0:
+                if self.delta_posterior < 0:
                     self.accept_move()
                 else:
                     alpha = self.random.rand()
                     self.alphas[self.iter] = alpha;  # log the alpha value
-                    if math.e ** (-delta_posterior/self.T) > alpha:
+                    if math.e ** (-self.delta_posterior/self.T) > alpha:
                         self.accept_move()
                     else:
                         self.reject_move()
@@ -317,21 +317,6 @@ class MCMC(object):
             if self.iter < self.options.anneal_length:
                 self.T = 1 + (self.options.T_init - 1) * \
                          math.e ** (-self.iter * self.T_decay)
-
-            # log some interesting variables
-            self.positions[self.iter,:] = self.test_position
-            self.priors[self.iter] = self.test_prior
-            
-            if hasattr(self.test_likelihood, "__len__"):
-                self.likelihoods[self.iter] = np.array(self.test_likelihood)
-                self.posteriors[self.iter] = np.array(self.test_posterior)
-                self.delta_posteriors[self.iter] = np.array(delta_posterior)
-            else:
-                self.likelihoods[self.iter] = self.test_likelihood
-                self.posteriors[self.iter] = self.test_posterior
-                self.delta_posteriors[self.iter] = delta_posterior
-                self.sigmas[self.iter] = self.sig_value
-                self.ts[self.iter] = self.T
                 
             # call user-callback step function
             if self.options.step_fn:
@@ -403,9 +388,16 @@ class MCMC(object):
         # log some interesting variables
         self.positions[self.iter,:] = self.position
         self.priors[self.iter] = self.accept_prior
-        self.likelihoods[self.iter] = self.accept_likelihood
-        self.posteriors[self.iter] = self.accept_posterior
-        self.delta_test_posteriors[self.iter] = self.delta_posterior
+            
+        if hasattr(self.test_likelihood, "__len__"):
+            self.likelihoods[self.iter] = np.array(self.accept_likelihood)
+            self.posteriors[self.iter] = np.array(self.accept_posterior)
+            self.delta_test_posteriors[self.iter] = np.array(self.delta_posterior)
+        else:
+            self.likelihoods[self.iter] = self.accept_likelihood
+            self.posteriors[self.iter] = self.accept_posterior
+            self.delta_test_posteriors[self.iter] = self.delta_posterior
+        
         self.sigmas[self.iter] = self.sig_value
         self.ts[self.iter] = self.T
 
