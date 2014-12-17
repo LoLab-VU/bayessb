@@ -41,15 +41,10 @@ class MCMCSet(object):
         # then remove them from the list
         for chain in self.chains:
             if len(chain.positions) == 0:
-                # TODO: Should this be an exception?
-                print("WARNING: Chain had no steps after pruning " \
-                      "(probably because no moves were accepted) " \
-                      "and is being removed.")
-                self.chains.remove(chain)
+                raise Exception("Chain had no steps after pruning!")
 
     def all_pruned(self):
-        """Indicates whether all chains have been pruned already.
-        """
+        """Indicates whether all chains have been pruned already."""
 
         if not self.chains:
             raise Exception("There are no chains in the MCMCSet.")

@@ -2,7 +2,7 @@ from texttable import Texttable
 import TableFactory as tf
 from inspect import ismodule
 from bayessb.multichain import MCMCSet
-import pickle
+import cPickle
 import inspect
 import scipy.cluster.hierarchy
 from matplotlib import pyplot as plt
@@ -11,6 +11,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import numpy as np
 from StringIO import StringIO
+from collections import OrderedDict
 
 reporter_dict = {}
 
@@ -22,13 +23,13 @@ class Report(object):
 
         Parameters
         ----------
-        chain_filenames : dict of lists of MCMC filenames.
-            The keys in the dict are the names of the groups of chains.  These
-            should ideally be descriptive abbreviations, indicating the type of
-            model, number of steps run in each chain, etc.  The entries in the
-            dict are lists of filenames of pickled MCMC objects,
-            representing completed MCMC estimation runs for the given
-            model/data.
+        chain_filenames : OrderedDict of lists of MCMC filenames.
+            The keys in the dict are the names of the groups of chains, sorted
+            by name.  These should ideally be descriptive abbreviations,
+            indicating the type of model, number of steps run in each chain,
+            etc.  The entries in the dict are lists of filenames of pickled
+            MCMC objects, representing completed MCMC estimation runs for the
+            given model/data.
         reporters : mixed list of reporter functions and/or modules
             The reporter functions should take an instance of
             bayessb.MCMCSet.multichain as an argument and return an
@@ -45,8 +46,11 @@ class Report(object):
             Number of steps to discard from the beginning of the chain.
         """
 
-        self.chain_filenames = chain_filenames
-        """dict of lists of MCMC filenames."""
+        self.chain_filenames = OrderedDict()
+        """dict of lists of MCMC filenames, sorted by name."""
+        for key in sorted(chain_filenames):
+            self.chain_filenames[key] = chain_filenames[key]
+
         self.module_names = []
         """List of module names that parallels that of the reporter names."""
         self.reporters = []
@@ -76,8 +80,8 @@ class Report(object):
 
         # Initialize reporter names and module names
         if names is None:
-            self.names = [n.replace('_', ' ') for n in chain_filenames.keys()]
-            #self.names = [c.options.model.name for c in chains]
+            self.names = [n.replace('_', ' ')
+                          for n in self.chain_filenames.keys()]
         else:
             self.names = names
 
@@ -102,7 +106,7 @@ class Report(object):
         # Load the chain files
         mcmc_list = []
         for filename in chain_list:
-            mcmc_list.append(pickle.load(open(filename)))
+            mcmc_list.append(cPickle.load(open(filename)))
 
         # Prune and pool the chains in the list
         mcmc_set.initialize_and_pool(mcmc_list, self.burn)

@@ -1,4 +1,5 @@
 *~
+*.log
 *.swp
 *.pyc
 build/*

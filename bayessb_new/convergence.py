@@ -207,27 +207,12 @@ def convergence_criterion(mcmc_set):
     # Make sure there is more than one chain
     if len(mcmc_set.chains) <= 1:
         return None
-    # Make sure the chains have been pruned
-    if not mcmc_set.all_pruned():
-        raise Exception("The chains should be pruned before calculating " \
-                        "convergence.")
 
-    # Iterate over the MCMC set to find the minimum number of steps
-    # in the set
+    # Build up the list of chains
+    # TODO Change all this to work with MCMCSet.chains
     chain_set = []
-    min_accepts = np.inf
     for chain in mcmc_set.chains:
         chain_set.append(np.copy(chain.positions))
-        if (len(chain.positions) < min_accepts):
-            min_accepts = len(chain.positions)
-    # Make sure we have some steps!
-    if min_accepts == 0:
-        return None
-
-    # Truncate the chains to make them all the length of the one with
-    # with the fewest accepts
-    for i, chain in enumerate(chain_set):
-        chain_set[i] = chain[len(chain) - min_accepts:]
 
     # Run the calculations on the chain set
     W = within_chain_variances(chain_set)

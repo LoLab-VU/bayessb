@@ -92,7 +92,7 @@ class MCMC(object):
     priors, likelihoods, posteriors : numpy.ndarray of float
         Trace of all priors, likelihoods, and posteriors corresponding to
         `positions`. Length is `nsteps`.
-    alphas, sigmas, delta_posteriors, ts : numpy.ndarray of float
+    alphas, sigmas, delta_test_posteriors, ts : numpy.ndarray of float
         Trace of various MCMC parameters and calculated values. Length is
         `nsteps`.
     accepts, rejects : numpy.ndarray of bool
@@ -113,7 +113,8 @@ class MCMC(object):
     def __getstate__(self):
         # clear solver since it causes problems with pickling
         state = self.__dict__.copy()
-        del state['solver']
+        if 'solver' in state:
+            del state['solver']
         return state
 
     def __setstate__(self, state):
@@ -195,16 +196,6 @@ class MCMC(object):
 	    if self.options.with_jacobian is not None:
 	        self.ode_options['with_jacobian'] = self.options.with_jacobian
 
-        # create solver so we can calculate the posterior
-        self.init_solver()
-
-        self.initial_posterior, self.initial_prior, self.initial_likelihood = \
-            self.calculate_posterior(self.initial_position)
-        
-        self.accept_prior = self.initial_prior
-        self.accept_likelihood = self.initial_likelihood
-        self.accept_posterior = self.initial_posterior
-
         # If anneal_length is 0, self.T_decay is irrelevant/undefined
         if self.options.anneal_length != 0:
             self.T_decay = -math.log10(1e-6) / self.options.anneal_length;
@@ -220,7 +211,6 @@ class MCMC(object):
         self.T = self.options.T_init;
         self.sig_value = 1.0
         self.hessian = None
-
         self.delta_posteriors = np.empty((self.options.nsteps, self.options.objectives))
         self.ts = np.empty(self.options.nsteps)
         self.priors = np.empty(self.options.nsteps)
@@ -237,6 +227,16 @@ class MCMC(object):
         # initialize to zeros so we can see where there were failures
         self.hessians = np.zeros((num_hessians,
                                   self.num_estimate, self.num_estimate))
+
+        # create solver so we can calculate the posterior
+        self.init_solver()
+
+        self.initial_posterior, self.initial_prior, self.initial_likelihood = \
+            self.calculate_posterior(self.initial_position)
+
+        self.accept_prior = self.initial_prior
+        self.accept_likelihood = self.initial_likelihood
+        self.accept_posterior = self.initial_posterior
 
     def init_solver(self):
         """Initialize solver from model and tspan."""
@@ -332,12 +332,82 @@ class MCMC(object):
                 self.delta_posteriors[self.iter] = delta_posterior
                 self.sigmas[self.iter] = self.sig_value
                 self.ts[self.iter] = self.T
-
+                
             # call user-callback step function
             if self.options.step_fn:
                 self.options.step_fn(self)
 
             self.iter += 1
+
+    def estimate_nsteps(self, nsteps):
+        """Execute the MCMC parameter estimation algorithm for n steps."""
+        current_iter = 0
+        while current_iter < nsteps:
+
+            # update hessian
+            if (self.options.use_hessian
+                and self.iter >= self.options.anneal_length
+                and self.iter % self.options.hessian_period == 0):
+                try:
+                    self.hessian = self.calculate_hessian()
+                    #self.hessian = self.calculate_inverse_covariance()
+                    hessian_num = ((self.iter - self.options.anneal_length)
+                                   // self.options.hessian_period)
+                    self.hessians[hessian_num,:,:] = self.hessian;
+
+                except HessianCalculationError:
+                    pass
+
+            # choose test position and calculate posterior there
+            self.test_position = self.generate_new_position()
+            (self.test_posterior, self.test_prior, self.test_likelihood) = \
+                self.calculate_posterior(self.test_position)
+
+            # ------------------METROPOLIS-HASTINGS ALGORITHM-------------------
+            self.delta_posterior = self.test_posterior - self.accept_posterior
+            if self.delta_posterior < 0:
+                self.accept_move()
+            else:
+                alpha = self.random.rand()
+                self.alphas[self.iter] = alpha;  # log the alpha value
+                if math.e ** -self.delta_posterior > alpha:
+                    self.accept_move()
+                else:
+                    self.reject_move()
+
+            # -------ADJUSTING SIGMA & TEMPERATURE (ANNEALING)--------
+            # XXX why did I move this first bit outside the
+            # iter<anneal_length test (below)?
+            if self.iter % self.options.sigma_adj_interval == 0:
+                accept_rate = float(self.acceptance) / (self.iter + 1)
+
+                if accept_rate < self.options.accept_rate_target:
+                    if self.sig_value > self.options.sigma_min:
+                        self.sig_value -= self.options.sigma_step
+                else:
+                    if self.sig_value < self.options.sigma_max:
+                        self.sig_value += self.options.sigma_step
+
+            if self.iter < self.options.anneal_length:
+                self.T = 1 + (self.options.T_init - 1) * \
+                         math.e ** (-self.iter * self.T_decay)
+
+            # call user-callback step function
+            if self.options.step_fn:
+                self.options.step_fn(self)
+
+            current_iter += 1
+            self.iter += 1
+
+    def log_variables(self):
+        # log some interesting variables
+        self.positions[self.iter,:] = self.position
+        self.priors[self.iter] = self.accept_prior
+        self.likelihoods[self.iter] = self.accept_likelihood
+        self.posteriors[self.iter] = self.accept_posterior
+        self.delta_test_posteriors[self.iter] = self.delta_posterior
+        self.sigmas[self.iter] = self.sig_value
+        self.ts[self.iter] = self.T
 
     def accept_move(self):
         """Accept the current proposed move."""
@@ -347,10 +417,12 @@ class MCMC(object):
         self.position = self.test_position
         self.acceptance += 1
         self.accepts[self.iter] = 1
+        self.log_variables()
 
     def reject_move(self):
         """Reject the current proposed move."""
         self.rejects[self.iter] = 1;
+        self.log_variables()
 
     def simulate(self, position=None, observables=False):
         """Simulate the model.
@@ -410,7 +482,7 @@ class MCMC(object):
                 or self.hessian is None:
             # normalize to obtain a vector sampled uniformly on the unit
             # hypersphere
-            step /= math.sqrt(step.dot(step))
+            #step /= math.sqrt(step.dot(step))
             # scale by norm_step_size and sig_value.
             step *= self.options.norm_step_size * self.sig_value
         else:
@@ -473,8 +545,11 @@ class MCMC(object):
 
         """
         prior = self.calculate_prior(position)
+        if prior == np.inf:
+            return np.inf, np.inf, np.inf
+
         likelihood = self.calculate_likelihood(position)
-        posterior = prior + likelihood * self.options.thermo_temp
+        posterior = (prior + (likelihood * self.options.thermo_temp)) / self.T
         return posterior, prior, likelihood
 
     def calculate_inverse_covariance(self):
@@ -539,54 +614,57 @@ class MCMC(object):
         return hessian
 
     def prune(self, burn, thin=1):
-        """Truncates the chain to the thinned, mixed, accepted positions.
+        """Truncates the chain to the thinned, mixed, positions.
 
-        Note that if the chain has already been pruned then this function does
-        nothing.
+        Note that this includes both the accepted and the rejected steps, as
+        this is essential for correct statistics.
+
+        Note also that if the chain has already been pruned then this function
+        does nothing.
 
         Side Effects:
 
             - After this method is called, self.positions is (destructively) set
-              to the mixed, accepted positions.
+              to the mixed, thinned positions.
             - The priors, likelihoods, and posteriors, sigmas, alphas, etc.
-              are modified to only record values for the mixed, accepted
+              are modified to only record values for the mixed, thinned
               positions.
             - The ``self.pruned`` field is set to True, indicating that the walk
               has been irreversibly pruned.
-            - The indices of the thinned, mixed, accepted steps are recorded in
-              the field ``self.thinned_accept_steps``. This can be useful for
+            - The indices of the thinned, mixed, steps are recorded in
+              the field ``self.thinned_steps``. This can be useful for
               plotting walks from multiple chains.
             - The values of the ``burn`` and ``thin`` parameters are recorded
               in the options object as ``self.options.burn`` and
               ``self.options.thin``.
         """
 
-        (thinned_accepts, thinned_accept_steps) = \
-                            self.get_mixed_accepts(burn, thin)
-        self.positions = thinned_accepts
+        (thinned_positions, thinned_steps) = \
+                self.get_thinned_mixed_steps(burn, thin)
+        self.positions = thinned_positions
         self.options.burn = burn
         self.options.thin = thin
         self.pruned = True
-        self.thinned_accept_steps = thinned_accept_steps
+        self.thinned_steps = thinned_steps
 
-        self.delta_posteriors = self.delta_posteriors[thinned_accept_steps]
-        self.ts = self.ts[thinned_accept_steps]
-        self.priors = self.priors[thinned_accept_steps]
-        self.likelihoods = self.likelihoods[thinned_accept_steps]
-        self.posteriors = self.posteriors[thinned_accept_steps]
+        self.delta_test_posteriors = self.delta_test_posteriors[thinned_steps]
+        self.ts = self.ts[thinned_steps]
+        self.priors = self.priors[thinned_steps]
+        self.likelihoods = self.likelihoods[thinned_steps]
+        self.posteriors = self.posteriors[thinned_steps]
 
-        self.alphas = self.alphas[thinned_accept_steps]
-        self.sigmas = self.sigmas[thinned_accept_steps]
-        self.accepts = self.accepts[thinned_accept_steps]
-        self.rejects = self.rejects[thinned_accept_steps]
+        self.alphas = self.alphas[thinned_steps]
+        self.sigmas = self.sigmas[thinned_steps]
+        self.accepts = self.accepts[thinned_steps]
+        self.rejects = self.rejects[thinned_steps]
 
-    def get_mixed_accepts(self, burn, thin=1):
-        """A helper function that returns the thinned,
-        accepted positions after a user-specified burn-in period; also returns
-        the indices (step numbers) of each of the returned positions.
+    def get_thinned_mixed_steps(self, burn, thin=1):
+        """A helper function that returns the thinned positions after a
+        user-specified burn-in period; also returns the indices (step numbers)
+        of each of the returned positions.
 
         Use this method instead of ``self.prune`` if you want to get the
-        mixed accepted steps without discarding all of the other ones.
+        mixed steps without discarding all of the other ones.
 
         Parameters
         ----------
@@ -594,28 +672,25 @@ class MCMC(object):
             An integer specifying the number of steps to cut off from the
             beginning of the walk.
         thin : int
-            An integer specifying how to thin the accepted steps of the walk.
-            If 1, returns every step; if 2, every other step; if 5, every
-            fifth step, etc.
+            An integer specifying how to thin the steps of the walk.  If 1,
+            returns every step; if 2, every other step; if 5, every fifth step,
+            etc.
 
         Returns
         -------
         A tuple of numpy.array objects. The first element in the tuple contains
-        the array of accepted positions, burned and thinned as required; the
-        second element contains a list of integers which indicate the indices
+        the array of positions, burned and thinned as required; the second
+        element contains a list of integers which indicate the indices
         associated with each of the steps returned.
         """
 
-        mixed_steps = np.array(range(burn, self.options.nsteps))    
+        mixed_steps = np.array(range(burn, self.options.nsteps))
         mixed_positions = self.positions[burn:]
 
-        mixed_accepts = mixed_positions[self.accepts[burn:]]
-        mixed_accept_steps = mixed_steps[self.accepts[burn:]]
+        thinned_steps = mixed_steps[::thin]
+        thinned_positions = mixed_positions[::thin]
 
-        thinned_accepts = mixed_accepts[::thin]
-        thinned_accept_steps = mixed_accept_steps[::thin]
-
-        return (thinned_accepts, thinned_accept_steps)
+        return (thinned_positions, thinned_steps)
 
 class HessianCalculationError(RuntimeError):
     pass

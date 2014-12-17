@@ -22,9 +22,7 @@ def estimation_parameters(mcmc_set):
     opts = chain.options
     output = StringIO()
     output.write("<html><head /><body><pre>")
-    output.write("nbd_sites: %s\n" % chain.nbd_sites)
-    output.write("nbd_observables: %s\n" % chain.nbd_observables)
-    output.write("model: %s\n" % chain.builder.model.name)
+    output.write("model: %s\n" % opts.model.name)
     output.write("use_hessian: %s\n" % opts.use_hessian)
     output.write("hessian_period: %s\n" % opts.hessian_period)
     output.write("hessian_scale: %s\n" % opts.hessian_scale)
@@ -74,7 +72,7 @@ def convergence_criterion(mcmc_set):
         color = cm.jet(i/float(num_estimate - 1))
         label = 's%d' % chain.options.seed
         if chain.pruned:
-            line = ax.plot(chain.thinned_accept_steps, chain.posteriors, color=color,
+            line = ax.plot(chain.thinned_steps, chain.posteriors, color=color,
                     label=label)
         else:
             line = ax.plot(chain.posteriors, color=color, label=label)
@@ -94,7 +92,7 @@ def convergence_criterion(mcmc_set):
             color = cm.jet(j/float(num_estimate - 1))
             label = 's%d' % chain.options.seed
             if chain.pruned:
-                line = ax.plot(chain.thinned_accept_steps, chain.positions[:,i],
+                line = ax.plot(chain.thinned_steps, chain.positions[:,i],
                                color=color, label=label)
             else:
                 line = ax.plot(chain.positions[:, i], color=color, label=label)
@@ -182,10 +180,12 @@ def show_fit_at_position(mcmc_set, fit_value, position, fit_name):
     fig = mcmc_set.chains[0].fit_plotting_function(position=position)
     img_filename = '%s_%s_plot.png' % (mcmc_set.name, fit_name)
     fig.savefig(img_filename)
+    fig.savefig(img_filename.replace('.png', '.pdf'))
     html_str += '<p><img src="%s" /></p>' % img_filename
 
-    # Show the plot of all observables at the position
     chain0 = mcmc_set.chains[0]
+    """
+    # Show the plot of all observables at the position
     tspan = chain0.options.tspan
     observables = chain0.options.model.observables
     x = chain0.simulate(position=position, observables=True)
@@ -204,6 +204,7 @@ def show_fit_at_position(mcmc_set, fit_value, position, fit_name):
     img_filename = '%s_%s_species.png' % (mcmc_set.name, fit_name)
     fig.savefig(img_filename)
     html_str += '<p><img src="%s" /></p>' % img_filename
+    """
 
     # Print the parameter values for the position as a dict that can be
     # used to override the initial values
@@ -224,7 +225,6 @@ def show_fit_at_position(mcmc_set, fit_value, position, fit_name):
 
 @reporter('Sample fits')
 def sample_fits(mcmc_set):
-    tspan = mcmc_set.chains[0].options.tspan
     fig = Figure()
     ax = fig.gca()
     plot_filename = '%s_sample_fits.png' % mcmc_set.name
@@ -243,15 +243,17 @@ def sample_fits(mcmc_set):
         for i in range(num_samples):
             position = mcmc_set.get_sample_position()
             timecourses = mcmc_set.chains[0].get_observable_timecourses(
-                                                                position=position)
+                                                            position=position)
             for obs_name, timecourse in timecourses.iteritems():
-                ax.plot(tspan, timecourse, color='g', alpha=0.1, label=obs_name)
+                ax.plot(timecourse[0], timecourse[1], color='g', alpha=0.1,
+                        label=obs_name)
     except NoPositionsException as npe:
         pass
 
     canvas = FigureCanvasAgg(fig)
     fig.set_canvas(canvas)
     fig.savefig(plot_filename)
+    fig.savefig(plot_filename.replace('.png', '.pdf'))
     fig.savefig(thumbnail_filename, dpi=10)
 
     return ThumbnailResult(thumbnail_filename, plot_filename)
@@ -281,7 +283,7 @@ def marginals(mcmc_set):
             if len(chain.positions) > 0:
                 chains_for_param.append(chain.positions[:,i])
         # Plot the marginals
-        ax.hist(chains_for_param, histtype='step')
+        ax.hist(chains_for_param, histtype='step', bins=25)
         ax.set_title("Parameter: %s" % param_name)
         plot_filename = '%s_marginal_%s.png' % (mcmc_set.name, param_name)
         canvas = FigureCanvasAgg(fig)
