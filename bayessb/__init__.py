@@ -793,7 +793,7 @@ class MCMCOpts(object):
         self.boundary_option    = False
         self.rtol               = None
         self.atol               = None
-        self.integrator		    = None
+        self.integrator		    = 'vode'
         self.intsteps		    = None
         self.with_jacobian	    = None
         self.norm_step_size     = 0.75
